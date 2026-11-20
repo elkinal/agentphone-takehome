@@ -8,6 +8,7 @@
     "setup": "tsx src/setup.ts",
     "opt-in": "tsx src/optin.ts",
     "demo": "tsx scripts/call-demo.ts",
+    "test:offline": "tsx scripts/test-offline.ts",
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",

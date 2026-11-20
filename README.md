@@ -73,6 +73,17 @@ Claude Code `mcp.json` or similar):
 
 (Or point `command`/`args` at `node dist/index.js` after `npm run build`.)
 
+### Offline tests (no real calls, no cost)
+
+```bash
+npm run test:offline
+```
+
+Covers input validation (garbage/plain-digit phone numbers), idempotency,
+and error handling -- everything that doesn't require placing a real,
+billable phone call. Live conversation quality and outcome accuracy can
+only be verified with real calls; see the CLI demo below for that.
+
 ### CLI demo (no MCP client needed)
 
 ```bash
