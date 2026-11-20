@@ -32,6 +32,15 @@ async function main() {
       voiceMode: "hosted",
       systemPrompt: "You are a helpful phone assistant. The specific task is provided per call.",
       beginMessage: "Hello!",
+      // Tuned from live testing: default interruption sensitivity (0.8) made
+      // the agent stop mid-sentence too easily, fragmenting turns and
+      // causing real mishearings (e.g. "outdoor seating" heard as "outdoor
+      // swimming"); "accurate" STT mode and a lower interruption threshold
+      // fixed that. voiceSpeed is a modest bump for a brisker, still-natural
+      // pace.
+      voiceSpeed: 1.12,
+      interruptionSensitivity: 0.5,
+      sttMode: "accurate",
     });
   }
   console.log(`Using agent ${agent.name} (${agent.id})`);
