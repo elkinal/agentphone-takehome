@@ -1,10 +1,18 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT_DIR = path.resolve(__dirname, "..");
+
+// Load .env from the project root explicitly, not process.cwd() -- an MCP
+// client (Claude Desktop/Code) typically launches this server with its own
+// working directory, not this project's, so the default cwd-relative
+// dotenv lookup would silently find nothing and every env var would be
+// missing with no clear error.
+dotenv.config({ path: path.join(ROOT_DIR, ".env") });
+
 export const DATA_DIR = path.join(ROOT_DIR, "data");
 export const CONFIG_PATH = path.join(DATA_DIR, "config.json");
 export const CALLS_PATH = path.join(DATA_DIR, "calls.json");
