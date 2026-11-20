@@ -53,19 +53,20 @@ npm run dev        # runs directly with tsx
 npm run build && npm start
 ```
 
-It speaks MCP over stdio. Example client config (Claude Desktop /
-Claude Code `mcp.json` or similar):
+It speaks MCP over stdio. `.mcp.json` in this repo is a working example
+config for Claude Code -- open this project directory in Claude Code and
+it's picked up automatically (project-scoped). It intentionally has no
+`env` block: the server loads `.env` from its own project root regardless
+of the client's working directory, so there's nothing else to configure.
+
+For Claude Desktop or another client, point it at an absolute path instead:
 
 ```json
 {
   "mcpServers": {
     "agentphone-call-assistant": {
       "command": "npx",
-      "args": ["tsx", "/absolute/path/to/agentphone-takehome/src/index.ts"],
-      "env": {
-        "AGENTPHONE_API_KEY": "sk_live_...",
-        "USER_PHONE_NUMBER": "+15551234567"
-      }
+      "args": ["tsx", "/absolute/path/to/agentphone-takehome/src/index.ts"]
     }
   }
 }

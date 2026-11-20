@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agentphone-call-assistant": {
+      "command": "npx",
+      "args": ["tsx", "src/index.ts"]
+    }
+  }
+}
