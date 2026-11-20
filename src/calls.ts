@@ -81,7 +81,7 @@ export async function placeCall(args: PlaceCallArgs): Promise<CallRecord> {
   }
 
   const userDetails = args.userDetails || {};
-  const constraints = args.constraints || [];
+  const constraints = (args.constraints || []).filter((c) => c.trim().length > 0);
   const destinationLabel = args.destinationLabel || null;
   const destination = normalizePhone(args.destination);
   const notifyPhoneNumber = args.notifyPhoneNumber
