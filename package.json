@@ -14,6 +14,7 @@
     "inspect": "npx @modelcontextprotocol/inspector tsx src/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "agentphone": "^1.0.25",
     "dotenv": "^16.4.5",

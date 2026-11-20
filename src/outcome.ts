@@ -28,6 +28,9 @@ const FAILURE_WORDS = [
   "won't be able to book",
   "can't book",
   "cannot book",
+  "wrong number",
+  "couldn't reach",
+  "could not reach",
 ];
 
 // Success is only claimed when the closing statement contains an explicit

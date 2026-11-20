@@ -121,16 +121,24 @@ Args: `limit` (default 20). Lists recent calls with a one-line summary each
 The voice call itself is handled entirely by AgentPhone's hosted LLM
 (`voiceMode: "hosted"` + a per-call `systemPrompt` built from your `task`,
 `userDetails`, and `constraints` -- see `src/prompt.ts`). No separate
-speech/LLM pipeline is run on our side.
+speech/LLM pipeline runs the conversation itself, and the agent is
+instructed to state the concrete result naturally as part of its own
+goodbye -- it never says anything that would sound like a log line or tag
+to the person on the call (an earlier version had it speak a literal
+`CALL OUTCOME:` marker out loud, which worked for parsing but sounded
+robotic and gave away that it wasn't a human; that's gone now).
 
-To get a reliable structured result without needing our own summarization
-model, the system prompt instructs the agent to end every call with one
-sentence starting with the literal marker `CALL OUTCOME:` describing what
-was confirmed or why it couldn't be. `src/outcome.ts` extracts that sentence
-and classifies success via a small keyword check (falls back to
-AgentPhone's own `callSuccessful`/`summary` fields if present, and to a
-generic message derived from call status -- e.g. "not answered" -- if the
-call never connected).
+Once a call ends, `src/llmOutcome.ts` sends the full transcript, the
+original task, and the constraints to Claude (`claude-haiku-5-5`) and asks
+it to classify the result as structured JSON (`success`/`summary`/
+`confirmed`/`unresolved`). This replaced an earlier keyword-matching
+heuristic that kept producing real false positives/negatives in testing
+(e.g. "I won't be able to book" didn't match "not able"; "I'll confirm"
+didn't match "confirmed") -- natural language has too many valid phrasings
+for string matching to keep up with reliably. This step is optional: if
+`ANTHROPIC_API_KEY` isn't set, or the call fails for any reason, it falls
+back to the original keyword heuristic in `src/outcome.ts` (never a hard
+dependency, never a crash).
 
 ## Failure handling
 
@@ -160,11 +168,12 @@ call never connected).
   take-home; polling the REST API gets the same end result with zero
   infra. It's the first thing I'd swap in for lower latency and fewer wasted
   API calls.
-- **Smarter outcome extraction.** The `CALL OUTCOME:` marker + keyword
-  heuristic is simple and worked reliably in testing, but a short dedicated
-  summarization pass (or AgentPhone's own `summary`/`callSuccessful` once
-  consistently populated) would be more robust than keyword matching for
-  edge cases ("maybe", partial success, etc.).
+- **Done during testing:** outcome classification moved from keyword
+  matching to a real LLM pass (`src/llmOutcome.ts`) after live testing kept
+  producing false positives/negatives the keyword list couldn't keep up
+  with. With more time I'd add a small eval set of transcripts (including
+  partial-success/ambiguous cases) to regression-test that classifier
+  instead of relying on ad hoc live calls.
 - **Ask before dialing.** Right now `place_call` assumes the task + details
   given are sufficient. A more complete product would have the MCP client's
   model flag obviously missing required info (no requested time window, no

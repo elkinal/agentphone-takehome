@@ -1,5 +1,6 @@
 import { env } from "./config.js";
 import { fetchCall, placeOutboundCall, sendSms, type RawCall } from "./agentphone.js";
+import { classifyOutcomeWithLlm } from "./llmOutcome.js";
 import { buildOutcome } from "./outcome.js";
 import { buildCallScript } from "./prompt.js";
 import { isE164, normalizePhone } from "./phone.js";
@@ -179,7 +180,12 @@ async function doRefreshCall(callId: string): Promise<CallRecord | undefined> {
 
   const transcript = toTranscript(rawCall);
   const isTerminal = !ACTIVE_STATUSES.includes(rawCall.status as any);
-  const outcome = isTerminal ? buildOutcome(rawCall, transcript) : existing.outcome;
+  let outcome = existing.outcome;
+  if (isTerminal) {
+    outcome =
+      (await classifyOutcomeWithLlm({ task: existing.task, constraints: existing.constraints, rawCall, transcript })) ??
+      buildOutcome(rawCall, transcript);
+  }
 
   let updated = await store.updateCallRecord(callId, {
     status: rawCall.status,
