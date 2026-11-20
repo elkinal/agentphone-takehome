@@ -140,8 +140,13 @@ call never connected).
 - **Call not answered / busy / failed**: `outcome.success` is `false` and
   `summary` reflects why, straight from AgentPhone's call status.
 - **SMS send fails** (e.g. 10DLC not registered): `smsSent` stays `false`
-  and `smsError` holds the reason; the call's MCP result is unaffected, and
-  the poller retries the SMS send on its next tick.
+  and `smsError` holds the reason; the call's MCP result is unaffected. A
+  separate, slower loop (`SMS_RETRY_INTERVAL_MS`, default 10 min) retries
+  sending it for any ended call that never got its text out, so a
+  multi-day external delay (like carrier registration review) resolves
+  itself automatically once sending unblocks -- no need to replay old
+  calls through `get_call` by hand. (The fast status-polling loop only
+  touches calls still in progress, not already-ended ones.)
 - **Repeated idempotency key**: always short-circuits to the original call,
   never places a second one.
 

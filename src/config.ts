@@ -54,4 +54,7 @@ export const env = {
   get pollIntervalMs() {
     return Number(process.env.POLL_INTERVAL_MS || 5000);
   },
+  get smsRetryIntervalMs() {
+    return Number(process.env.SMS_RETRY_INTERVAL_MS || 10 * 60 * 1000);
+  },
 };
