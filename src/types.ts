@@ -60,3 +60,12 @@ export interface PlaceCallArgs {
 export interface GetCallArgs {
   callId: string;
 }
+
+/** Returned by place_call instead of a CallRecord when the task is missing
+ * something essential -- no call is placed and nothing is persisted, so a
+ * retry with the same idempotencyKey (now with the missing info filled in)
+ * is free to actually dial. */
+export interface ClarificationNeeded {
+  needsClarification: true;
+  missingDetails: string[];
+}

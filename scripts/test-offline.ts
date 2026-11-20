@@ -6,6 +6,7 @@ import "../src/config.js";
 import { randomUUID } from "node:crypto";
 import { isE164, normalizePhone } from "../src/phone.js";
 import { placeCall, refreshCall } from "../src/calls.js";
+import { findMissingDetails } from "../src/llmPreflight.js";
 
 let failures = 0;
 function check(label: string, pass: boolean, detail?: unknown) {
@@ -29,12 +30,15 @@ async function main() {
     task: "This should never actually dial.",
     idempotencyKey: `free-test-bad-number-${randomUUID()}`,
   });
-  check(
-    "invalid destination fails without dialing",
-    badNumberResult.placementError !== null && badNumberResult.status === "failed",
-    badNumberResult.placementError
-  );
-  check("destinationLabel threaded through on failure", badNumberResult.destinationLabel === "Test Garbage Number");
+  check("invalid destination doesn't need clarification", !("needsClarification" in badNumberResult));
+  if (!("needsClarification" in badNumberResult)) {
+    check(
+      "invalid destination fails without dialing",
+      badNumberResult.placementError !== null && badNumberResult.status === "failed",
+      badNumberResult.placementError
+    );
+    check("destinationLabel threaded through on failure", badNumberResult.destinationLabel === "Test Garbage Number");
+  }
 
   // --- get_call on a call id that was never placed ---
   const missing = await refreshCall("totally-made-up-call-id-xyz");
@@ -46,10 +50,41 @@ async function main() {
   const key = `free-test-idempotency-${randomUUID()}`;
   const first = await placeCall({ destination: "also-not-real", task: "x", idempotencyKey: key });
   const second = await placeCall({ destination: "also-not-real", task: "x", idempotencyKey: key });
-  check("idempotency: same key returns identical callId", first.callId === second.callId, {
-    first: first.callId,
-    second: second.callId,
-  });
+  if (!("needsClarification" in first) && !("needsClarification" in second)) {
+    check("idempotency: same key returns identical callId", first.callId === second.callId, {
+      first: first.callId,
+      second: second.callId,
+    });
+  } else {
+    check("idempotency check didn't need clarification", false, { first, second });
+  }
+
+  // --- pre-flight clarification check, tested directly (never goes through
+  // placeCall / never dials) so a surprising LLM judgment call can't
+  // accidentally place a real call during an "offline" test run ---
+  if (process.env.ANTHROPIC_API_KEY) {
+    const vague = await findMissingDetails({
+      task: "Call them.",
+      constraints: [],
+      userDetails: {},
+      destination: "+16072167113",
+    });
+    check("hopelessly vague task flags missing details", !!vague && vague.length > 0, vague);
+
+    const wellSpecified = await findMissingDetails({
+      task: "Book a table for four this Friday between 6:30 and 7:30pm under the name Manav. Ask about outdoor seating.",
+      constraints: ["Don't accept a reservation that requires a deposit"],
+      userDetails: { name: "Manav" },
+      destination: "+16072167113",
+    });
+    check(
+      "well-specified task doesn't flag anything missing",
+      wellSpecified !== null && wellSpecified.length === 0,
+      wellSpecified
+    );
+  } else {
+    console.log("SKIP - pre-flight clarification checks (no ANTHROPIC_API_KEY configured)");
+  }
 
   console.log(`\n${failures === 0 ? "All offline tests passed." : `${failures} offline test(s) FAILED.`}`);
   if (failures > 0) process.exit(1);

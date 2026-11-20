@@ -116,6 +116,16 @@ that counts -- success or failure. Re-sending the same key always returns
 that original call's record and never dials again. Mint a new key for a
 genuinely new attempt.
 
+**Pre-call clarification (bonus):** before actually dialing, the task is
+checked for anything essential that's missing (no date/time for a
+reservation, no name to book under, no indication of who to even call).
+If something's missing, `place_call` returns `{ needsClarification: true,
+missingDetails: [...] }` instead of placing a call -- nothing is
+persisted and the idempotency key is untouched, so the calling model can
+go ask the user and retry with the same key once it has an answer. This
+only runs when `ANTHROPIC_API_KEY` is set; without it, `place_call` just
+proceeds to dial as before.
+
 ### `get_call`
 
 Args: `callId`. Re-fetches the latest status/transcript from AgentPhone,
@@ -186,11 +196,6 @@ dependency, never a crash).
   with. With more time I'd add a small eval set of transcripts (including
   partial-success/ambiguous cases) to regression-test that classifier
   instead of relying on ad hoc live calls.
-- **Ask before dialing.** Right now `place_call` assumes the task + details
-  given are sufficient. A more complete product would have the MCP client's
-  model flag obviously missing required info (no requested time window, no
-  name) before placing the call, rather than letting the on-call agent
-  discover gaps live.
 - **Call recording + review.** AgentPhone supports an optional recording
   add-on; surfacing `recordingUrl` through `get_call` and a simple local
   web UI for browsing call history/transcripts/recordings would make this

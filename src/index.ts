@@ -21,7 +21,9 @@ server.registerTool(
     description:
       "Places a real outbound phone call via AgentPhone to accomplish a task (e.g. booking a restaurant reservation). " +
       "Returns a call ID promptly; the call runs in the background. Use get_call to check on it. " +
-      "Calling this again with the same idempotencyKey will NOT place a second call -- it returns the original call's record.",
+      "Calling this again with the same idempotencyKey will NOT place a second call -- it returns the original call's record. " +
+      "May instead return needsClarification if the task is missing something essential to actually accomplish it (e.g. no date/time for a reservation) -- " +
+      "in that case no call was placed and nothing was consumed, so ask the user for the missing details and call again with the same idempotencyKey.",
     inputSchema: {
       destination: z.string().describe("Phone number to call. E.164 preferred (e.g. +15551234567); plain 10-digit US numbers are also accepted."),
       destinationLabel: z
@@ -53,13 +55,34 @@ server.registerTool(
   },
   async (args) => {
     try {
-      const record = await placeCall(args);
+      const result = await placeCall(args);
+      if ("needsClarification" in result) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  needsClarification: true,
+                  missingDetails: result.missingDetails,
+                  message:
+                    "No call was placed. Ask the user for: " +
+                    result.missingDetails.join(", ") +
+                    ". Then call place_call again with the same idempotencyKey.",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       return {
         content: [
           {
             type: "text" as const,
             text: JSON.stringify(
-              { callId: record.callId, status: record.status, placementError: record.placementError },
+              { callId: result.callId, status: result.status, placementError: result.placementError },
               null,
               2
             ),

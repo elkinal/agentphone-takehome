@@ -12,13 +12,18 @@ async function main() {
   }
 
   console.log(`Placing call to ${destination}...`);
-  const record = await placeCall({
+  const result = await placeCall({
     destination,
     task,
     userDetails: { name: "Manav" },
     constraints,
     idempotencyKey: randomUUID(),
   });
+  if ("needsClarification" in result) {
+    console.log("Needs clarification before dialing:", result.missingDetails);
+    process.exit(0);
+  }
+  const record = result;
   console.log(`Call ID: ${record.callId}, initial status: ${record.status}`);
   if (record.placementError) {
     console.error("Placement failed:", record.placementError);

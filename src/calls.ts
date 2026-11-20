@@ -1,11 +1,18 @@
 import { env } from "./config.js";
 import { fetchCall, placeOutboundCall, sendSms, type RawCall } from "./agentphone.js";
 import { classifyOutcomeWithLlm } from "./llmOutcome.js";
+import { findMissingDetails } from "./llmPreflight.js";
 import { buildOutcome } from "./outcome.js";
 import { buildCallScript } from "./prompt.js";
 import { isE164, normalizePhone } from "./phone.js";
 import * as store from "./store.js";
-import { ACTIVE_STATUSES, type CallRecord, type PlaceCallArgs, type TranscriptTurn } from "./types.js";
+import {
+  ACTIVE_STATUSES,
+  type CallRecord,
+  type ClarificationNeeded,
+  type PlaceCallArgs,
+  type TranscriptTurn,
+} from "./types.js";
 
 function log(...args: unknown[]) {
   // MCP servers talk JSON-RPC over stdout; all diagnostics go to stderr.
@@ -70,7 +77,7 @@ function buildFailedRecord(params: {
   };
 }
 
-export async function placeCall(args: PlaceCallArgs): Promise<CallRecord> {
+export async function placeCall(args: PlaceCallArgs): Promise<CallRecord | ClarificationNeeded> {
   const existingCallId = await store.findCallIdByIdempotencyKey(args.idempotencyKey);
   if (existingCallId) {
     const existing = await store.getCallRecord(existingCallId);
@@ -109,6 +116,15 @@ export async function placeCall(args: PlaceCallArgs): Promise<CallRecord> {
     });
     await store.createCallRecord(failedRecord);
     return failedRecord;
+  }
+
+  // Nothing is persisted here and the idempotency key is untouched, so a
+  // retry with the same key -- now with the missing info filled in -- is
+  // free to actually dial.
+  const missingDetails = await findMissingDetails({ task: args.task, constraints, userDetails, destination });
+  if (missingDetails && missingDetails.length > 0) {
+    log(`place_call needs clarification before dialing: ${missingDetails.join(", ")}`);
+    return { needsClarification: true, missingDetails };
   }
 
   const { systemPrompt, initialGreeting } = buildCallScript({
