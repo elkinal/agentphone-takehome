@@ -25,7 +25,12 @@ cp .env.example .env
 # and USER_PHONE_NUMBER (where you want the result SMS sent, E.164 format)
 
 npm run setup   # provisions/reuses a number + creates the calling agent
+npm run opt-in  # interactive consent flow -- confirms USER_PHONE_NUMBER
 ```
+
+`npm run opt-in` is a real, screenshot-able opt-in flow (you type your
+number, read the consent language, type "yes"), used as the opt-in evidence
+for AgentPhone's A2P 10DLC registration -- see below.
 
 `npm run setup` is idempotent: it reuses your first existing AgentPhone
 number and a "Call Assistant" agent if either already exists, otherwise it
