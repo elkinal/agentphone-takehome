@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Call Assistant - SMS Opt-In</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f6f8; margin: 0; display: flex; justify-content: center; padding: 60px 20px; }
+  .card { background: #fff; max-width: 480px; width: 100%; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); padding: 32px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 14px; margin-bottom: 24px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  input[type=tel] { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 15px; border: 1px solid #d0d3d8; border-radius: 8px; margin-bottom: 16px; }
+  .consent { background: #f0f4ff; border: 1px solid #d6e0ff; border-radius: 8px; padding: 14px; font-size: 13px; color: #333; margin-bottom: 20px; line-height: 1.5; }
+  .checkbox-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 20px; font-size: 13px; color: #333; }
+  button { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; background: #2f6fed; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  button:disabled { background: #b9c6e6; }
+  .confirmed { display: none; margin-top: 16px; padding: 14px; background: #e9f9ee; border: 1px solid #bfe9cc; border-radius: 8px; color: #1e6b36; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Get a text when your call is done</h1>
+    <div class="sub">Call Assistant texts you a one-line summary after every call it places on your behalf.</div>
+
+    <label for="phone">Your phone number</label>
+    <input id="phone" type="tel" value="+16072167113" placeholder="+15551234567" />
+
+    <div class="consent">
+      By checking the box below, you agree to receive SMS messages from <strong>Call Assistant</strong> at the
+      number above, reporting the outcome of calls placed on your behalf. No other messages are sent, and your
+      number is never shared. Message and data rates may apply. Reply <strong>STOP</strong> at any time to
+      unsubscribe.
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="consent-check" />
+      <label for="consent-check" style="font-weight:400;">I agree to receive SMS call-result notifications at the number above.</label>
+    </div>
+
+    <button id="submit-btn" disabled>Confirm opt-in</button>
+
+    <div class="confirmed" id="confirmed-box">
+      Confirmed -- call-result texts will be sent to <span id="confirmed-number"></span>. Reply STOP anytime to unsubscribe.
+    </div>
+  </div>
+
+  <script>
+    const checkbox = document.getElementById('consent-check');
+    const button = document.getElementById('submit-btn');
+    const phone = document.getElementById('phone');
+    const confirmedBox = document.getElementById('confirmed-box');
+    const confirmedNumber = document.getElementById('confirmed-number');
+
+    checkbox.addEventListener('change', () => { button.disabled = !checkbox.checked; });
+    button.addEventListener('click', () => {
+      confirmedNumber.textContent = phone.value;
+      confirmedBox.style.display = 'block';
+      button.textContent = 'Opted in';
+      button.disabled = true;
+    });
+  </script>
+</body>
+</html>

@@ -5,12 +5,9 @@
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { upsertEnvVar } from "./envfile.js";
+import { isE164 } from "./phone.js";
 
 const BRAND = "Call Assistant";
-
-function isE164(value: string): boolean {
-  return /^\+[1-9]\d{7,14}$/.test(value);
-}
 
 async function main() {
   const rl = readline.createInterface({ input: stdin, output: stdout });

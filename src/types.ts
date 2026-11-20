@@ -29,6 +29,7 @@ export interface CallRecord {
   callId: string;
   idempotencyKey: string;
   destination: string;
+  destinationLabel: string | null;
   task: string;
   userDetails: Record<string, string>;
   constraints: string[];
@@ -48,6 +49,7 @@ export interface CallRecord {
 
 export interface PlaceCallArgs {
   destination: string;
+  destinationLabel?: string;
   task: string;
   userDetails?: Record<string, string>;
   constraints?: string[];

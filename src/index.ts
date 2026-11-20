@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { env } from "./config.js";
 import { placeCall, refreshCall, listRecentCalls } from "./calls.js";
 import { startPoller } from "./poller.js";
 
@@ -8,6 +9,10 @@ const server = new McpServer({
   name: "agentphone-call-assistant",
   version: "0.1.0",
 });
+
+function errorResult(message: string) {
+  return { content: [{ type: "text" as const, text: JSON.stringify({ error: message }) }], isError: true };
+}
 
 server.registerTool(
   "place_call",
@@ -18,7 +23,11 @@ server.registerTool(
       "Returns a call ID promptly; the call runs in the background. Use get_call to check on it. " +
       "Calling this again with the same idempotencyKey will NOT place a second call -- it returns the original call's record.",
     inputSchema: {
-      destination: z.string().describe("Phone number to call, in E.164 format, e.g. +15551234567"),
+      destination: z.string().describe("Phone number to call. E.164 preferred (e.g. +15551234567); plain 10-digit US numbers are also accepted."),
+      destinationLabel: z
+        .string()
+        .optional()
+        .describe("Human-readable name for the destination, e.g. \"Luigi's Trattoria\". Used in the SMS report and call history instead of the raw number."),
       task: z
         .string()
         .describe(
@@ -38,27 +47,28 @@ server.registerTool(
         .describe("Phone number to SMS the final result to. Defaults to USER_PHONE_NUMBER from the server's .env."),
       idempotencyKey: z
         .string()
+        .min(1)
         .describe("A unique key for this request. Reusing it returns the original call instead of placing a new one."),
     },
   },
   async (args) => {
-    const record = await placeCall(args);
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              callId: record.callId,
-              status: record.status,
-              placementError: record.placementError,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
+    try {
+      const record = await placeCall(args);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              { callId: record.callId, status: record.status, placementError: record.placementError },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (err) {
+      return errorResult(`place_call failed: ${(err as Error).message}`);
+    }
   }
 );
 
@@ -74,16 +84,13 @@ server.registerTool(
     },
   },
   async ({ callId }) => {
-    const record = await refreshCall(callId);
-    if (!record) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: `No call found with id ${callId}` }) }],
-        isError: true,
-      };
+    try {
+      const record = await refreshCall(callId);
+      if (!record) return errorResult(`No call found with id ${callId}`);
+      return { content: [{ type: "text" as const, text: JSON.stringify(record, null, 2) }] };
+    } catch (err) {
+      return errorResult(`get_call failed: ${(err as Error).message}`);
     }
-    return {
-      content: [{ type: "text", text: JSON.stringify(record, null, 2) }],
-    };
   }
 );
 
@@ -97,22 +104,34 @@ server.registerTool(
     },
   },
   async ({ limit }) => {
-    const records = await listRecentCalls(limit ?? 20);
-    const summaries = records.map((r) => ({
-      callId: r.callId,
-      destination: r.destination,
-      task: r.task,
-      status: r.status,
-      success: r.outcome?.success ?? null,
-      createdAt: r.createdAt,
-    }));
-    return {
-      content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
-    };
+    try {
+      const records = await listRecentCalls(limit ?? 20);
+      const summaries = records.map((r) => ({
+        callId: r.callId,
+        destination: r.destinationLabel || r.destination,
+        task: r.task,
+        status: r.status,
+        success: r.outcome?.success ?? null,
+        createdAt: r.createdAt,
+      }));
+      return { content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }] };
+    } catch (err) {
+      return errorResult(`list_calls failed: ${(err as Error).message}`);
+    }
   }
 );
 
 async function main() {
+  if (!process.env.AGENTPHONE_API_KEY) {
+    console.error(
+      "[agentphone-call-assistant] WARNING: AGENTPHONE_API_KEY is not set. Copy .env.example to .env and fill it in."
+    );
+  } else if (!env.agentId) {
+    console.error(
+      "[agentphone-call-assistant] WARNING: no agent configured. Run `npm run setup` before calling place_call."
+    );
+  }
+
   startPoller();
   const transport = new StdioServerTransport();
   await server.connect(transport);

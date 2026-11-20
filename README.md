@@ -86,9 +86,12 @@ polls until the call ends, and prints the final transcript + outcome.
 
 ### `place_call`
 
-Args: `destination`, `task`, `userDetails` (object), `constraints` (string
-array), `notifyPhoneNumber` (optional, defaults to `USER_PHONE_NUMBER`),
-`idempotencyKey` (required).
+Args: `destination`, `destinationLabel` (optional, e.g. `"Luigi's Trattoria"`
+-- used in the SMS report and call history instead of the raw number),
+`task`, `userDetails` (object), `constraints` (string array),
+`notifyPhoneNumber` (optional, defaults to `USER_PHONE_NUMBER`),
+`idempotencyKey` (required). `destination`/`notifyPhoneNumber` accept plain
+10-digit US numbers too -- they're normalized to E.164 before dialing.
 
 Places a real outbound call immediately and returns `{ callId, status }`
 without waiting for the call to finish. The call runs in the background;
