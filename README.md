@@ -13,7 +13,7 @@ Ask it something like:
 ...and it places the real call, has the conversation, and reports back
 whether it worked, what was confirmed, and anything unresolved.
 
-**Demo video:** see the Loom walkthrough for the full flow end to end.
+**Demo video:** [Loom walkthrough](https://www.loom.com/share/bd2fba15ffcb49e6a79af078020144fe) — the full flow end to end, key decisions, and what I changed after testing it live.
 
 ## What I built beyond the two required tools
 
