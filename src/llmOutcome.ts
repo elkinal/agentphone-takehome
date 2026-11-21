@@ -72,16 +72,27 @@ Rules for your judgment:
   try {
     const response = await anthropic.messages.create({
       model: "claude-haiku-5-5",
-      max_tokens: 600,
+      max_tokens: 2000,
       messages: [{ role: "user", content: prompt }],
     });
     const text = response.content.find((b) => b.type === "text")?.text;
-    if (!text) return null;
+    if (!text) {
+      console.error(
+        "[agentphone-call-assistant] LLM outcome: no text content in response, falling back. stop_reason:",
+        response.stop_reason,
+        "content:",
+        JSON.stringify(response.content)
+      );
+      return null;
+    }
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.error("[agentphone-call-assistant] LLM outcome: no JSON found in response, falling back:", text);
+      return null;
+    }
     const parsed = JSON.parse(jsonMatch[0]);
     if (!isValidOutcome(parsed)) {
-      console.error("[agentphone-call-assistant] LLM outcome response didn't match expected shape, falling back");
+      console.error("[agentphone-call-assistant] LLM outcome response didn't match expected shape, falling back:", jsonMatch[0]);
       return null;
     }
     console.error("[agentphone-call-assistant] outcome classified by LLM");

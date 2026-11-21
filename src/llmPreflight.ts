@@ -46,7 +46,7 @@ Return an empty array if the task is reasonably ready to dial as-is.`;
   try {
     const response = await anthropic.messages.create({
       model: "claude-haiku-5-5",
-      max_tokens: 800,
+      max_tokens: 1200,
       messages: [{ role: "user", content: prompt }],
     });
     const text = response.content.find((b) => b.type === "text")?.text;
