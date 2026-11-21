@@ -139,6 +139,12 @@ updates the stored record, and returns it in full: status, transcript,
 `outcome` (`success`, `summary`, `confirmed`, `unresolved`), and whether the
 report SMS went out (`smsSent` / `smsError`).
 
+If the call is still in progress, this waits (polling every 3s, up to
+~90s) for it to reach a terminal state before returning, instead of
+handing back whatever status happens to be current. One `get_call` call
+is enough -- no need for the calling model to build its own sleep-and-poll
+loop around repeated calls to check on something still ringing.
+
 ### `list_calls` (bonus)
 
 Args: `limit` (default 20). Lists recent calls with a one-line summary each

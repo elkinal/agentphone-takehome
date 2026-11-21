@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { env } from "./config.js";
-import { placeCall, refreshCall, listRecentCalls } from "./calls.js";
+import { placeCall, waitForCall, listRecentCalls } from "./calls.js";
 import { startPoller } from "./poller.js";
 
 const server = new McpServer({
@@ -100,15 +100,17 @@ server.registerTool(
   {
     title: "Get call status and result",
     description:
-      "Returns a call's current status, transcript, and final outcome (what was confirmed, whether the task " +
-      "succeeded, and anything unresolved). Safe to call repeatedly while a call is in progress.",
+      "Returns a call's status, transcript, and final outcome (what was confirmed, whether the task succeeded, " +
+      "and anything unresolved). If the call is still in progress, this waits (up to ~90 seconds) for it to " +
+      "finish before returning, so there's no need to sleep and call this repeatedly yourself -- one call to " +
+      "get_call is enough. It only returns while still in-progress if the call genuinely runs longer than that.",
     inputSchema: {
       callId: z.string().describe("The call ID returned by place_call"),
     },
   },
   async ({ callId }) => {
     try {
-      const record = await refreshCall(callId);
+      const record = await waitForCall(callId);
       if (!record) return errorResult(`No call found with id ${callId}`);
       return { content: [{ type: "text" as const, text: JSON.stringify(record, null, 2) }] };
     } catch (err) {

@@ -181,6 +181,23 @@ export function refreshCall(callId: string): Promise<CallRecord | undefined> {
   return withCallLock(callId, () => doRefreshCall(callId));
 }
 
+/** Like refreshCall, but waits (polling every few seconds) until the call
+ * reaches a terminal state or maxWaitMs elapses, instead of returning
+ * immediately with whatever status happens to be current. Most calls in
+ * testing finish well under a minute, so this gets get_call callers a
+ * single settled answer instead of making them build their own
+ * sleep-and-poll loop around repeated get_call calls. */
+export async function waitForCall(callId: string, maxWaitMs = 90000): Promise<CallRecord | undefined> {
+  const pollIntervalMs = 3000;
+  const deadline = Date.now() + maxWaitMs;
+  let record = await refreshCall(callId);
+  while (record && ACTIVE_STATUSES.includes(record.status as any) && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+    record = await refreshCall(callId);
+  }
+  return record;
+}
+
 async function doRefreshCall(callId: string): Promise<CallRecord | undefined> {
   const existing = await store.getCallRecord(callId);
   if (!existing) return undefined;
