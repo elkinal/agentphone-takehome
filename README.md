@@ -23,6 +23,9 @@ npm install
 cp .env.example .env
 # fill in AGENTPHONE_API_KEY (Settings -> API Keys in the AgentPhone dashboard)
 # and USER_PHONE_NUMBER (where you want the result SMS sent, E.164 format)
+# optionally fill in ANTHROPIC_API_KEY too -- enables the LLM outcome
+# classifier and the pre-call clarification check (see below); without it,
+# both fall back to simpler, less reliable built-in checks
 
 npm run setup   # provisions/reuses a number + creates the calling agent
 npm run opt-in  # interactive consent flow -- confirms USER_PHONE_NUMBER
@@ -30,7 +33,10 @@ npm run opt-in  # interactive consent flow -- confirms USER_PHONE_NUMBER
 
 `npm run opt-in` is a real, screenshot-able opt-in flow (you type your
 number, read the consent language, type "yes"), used as the opt-in evidence
-for AgentPhone's A2P 10DLC registration -- see below.
+for AgentPhone's A2P 10DLC registration -- see below. `scripts/optin-page.html`
+is the same flow as a standalone web page, if a browser screenshot reads
+better to a carrier reviewer than a terminal one -- open it directly in a
+browser, no server needed.
 
 `npm run setup` is idempotent: it reuses your first existing AgentPhone
 number and a "Call Assistant" agent if either already exists, otherwise it
